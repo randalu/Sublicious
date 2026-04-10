@@ -483,7 +483,13 @@ SUPER_ADMIN_PASSWORD={$admin['admin_password']}
 SUPER_ADMIN_NAME="{$admin['admin_name']}"
 ENV;
 
+    // Ensure .env is writable before (re)writing it
+    if (file_exists(__DIR__ . '/.env')) {
+        @chmod(__DIR__ . '/.env', 0664);
+    }
     file_put_contents(__DIR__ . '/.env', $env);
+    // Make writable so artisan key:generate can update APP_KEY in place
+    @chmod(__DIR__ . '/.env', 0664);
 }
 
 function saveSmsSettings(array $sms): void
@@ -542,9 +548,12 @@ function checkRequirements(): array
         }
     }
 
+    // Verify writability with an actual write probe (is_writable can be unreliable on some hosts)
     foreach ([__DIR__, __DIR__ . '/storage', __DIR__ . '/bootstrap/cache'] as $path) {
-        $rel = str_replace(__DIR__, '.', $path);
-        $ok  = is_writable($path);
+        $rel   = str_replace(__DIR__, '.', $path);
+        $probe = $path . '/.write_test_' . getmypid();
+        $ok    = @file_put_contents($probe, 'x') !== false;
+        if ($ok) @unlink($probe);
         $checks[] = ['label' => "Writable: $rel", 'ok' => $ok, 'note' => $ok ? '' : "Run: chmod -R 775 $rel"];
     }
 
