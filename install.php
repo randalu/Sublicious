@@ -211,7 +211,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $posted_step = (int) ($_POST['step'] ?? 1);
 
     switch ($posted_step) {
-        case 1: // Requirements — just advance
+        case 1: // Requirements — fix permissions or advance
+            if (!empty($_POST['fix_permissions'])) {
+                // Recursively chmod storage and bootstrap/cache via PHP
+                $fixPaths = [
+                    __DIR__ . '/storage',
+                    __DIR__ . '/bootstrap/cache',
+                ];
+                foreach ($fixPaths as $base) {
+                    if (!is_dir($base)) continue;
+                    $iter = new RecursiveIteratorIterator(
+                        new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS),
+                        RecursiveIteratorIterator::SELF_FIRST
+                    );
+                    @chmod($base, 0775);
+                    foreach ($iter as $item) {
+                        @chmod($item->getPathname(), $item->isDir() ? 0775 : 0664);
+                    }
+                }
+                // Also chmod project root
+                @chmod(__DIR__, 0775);
+                redirect(1); // reload to re-run checks
+            }
             $_SESSION['step'] = 2;
             redirect(2);
 
@@ -502,7 +523,25 @@ function checkRequirements(): array
         $checks[] = ['label' => "PHP extension: $ext", 'ok' => extension_loaded($ext), 'note' => extension_loaded($ext) ? '' : "Enable $ext in php.ini"];
     }
 
-    // Writable paths
+    // Writable paths — auto-attempt chmod via PHP before checking
+    $writablePaths = [
+        __DIR__,
+        __DIR__ . '/storage',
+        __DIR__ . '/storage/app',
+        __DIR__ . '/storage/app/public',
+        __DIR__ . '/storage/framework',
+        __DIR__ . '/storage/framework/cache',
+        __DIR__ . '/storage/framework/sessions',
+        __DIR__ . '/storage/framework/views',
+        __DIR__ . '/storage/logs',
+        __DIR__ . '/bootstrap/cache',
+    ];
+    foreach ($writablePaths as $path) {
+        if (is_dir($path) && !is_writable($path)) {
+            @chmod($path, 0775);
+        }
+    }
+
     foreach ([__DIR__, __DIR__ . '/storage', __DIR__ . '/bootstrap/cache'] as $path) {
         $rel = str_replace(__DIR__, '.', $path);
         $ok  = is_writable($path);
@@ -651,8 +690,17 @@ function stepRequirements(): string
 {
     $checks   = checkRequirements();
     $allOk    = array_reduce($checks, fn($c, $r) => $c && $r['ok'], true);
-    $rows     = '';
 
+    // Check specifically for writable failures (chmod fixable)
+    $hasWriteFailure = false;
+    foreach ($checks as $c) {
+        if (!$c['ok'] && str_starts_with($c['label'], 'Writable:')) {
+            $hasWriteFailure = true;
+            break;
+        }
+    }
+
+    $rows = '';
     foreach ($checks as $c) {
         $badge = $c['ok']
             ? '<span class="badge badge-ok">✓</span>'
@@ -666,13 +714,20 @@ function stepRequirements(): string
         ? '<div class="alert alert-success">All requirements met — you\'re good to go!</div>'
         : '<div class="alert alert-error">Some requirements are not met. Fix them before continuing.</div>';
 
+    $fixBtn = $hasWriteFailure ? '
+        <form method="post" action="install.php?step=1" style="display:inline">
+            <input type="hidden" name="step" value="1">
+            <input type="hidden" name="fix_permissions" value="1">
+            <button type="submit" class="btn btn-secondary">&#128736; Fix Permissions Automatically</button>
+        </form>' : '';
+
     return <<<HTML
 {$msg}
 {$rows}
 <form method="post" action="install.php?step=1">
     <input type="hidden" name="step" value="1">
     <div class="btn-row">
-        <span></span>
+        {$fixBtn}
         <button type="submit" class="btn btn-primary" {$btnDisabled}>Continue →</button>
     </div>
 </form>
