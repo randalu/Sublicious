@@ -6,18 +6,197 @@
  * Access it at: https://yourdomain.com/install.php
  *
  * Works on shared hosting — no terminal required.
- * Requires: PHP 8.3+, PDO, vendor/ directory present (upload after composer install).
+ * Requires: PHP 8.3+, PDO.
+ * If vendor/ is missing the installer will attempt to run composer for you.
  *
  * IMPORTANT: Delete this file after installation!
  */
 
 // ─── Security ───────────────────────────────────────────────────────────────
 if (file_exists(__DIR__ . '/installed.lock')) {
-    die(renderError('Already installed', 'Sublicious is already installed. <a href="/">Go to the app</a>. Delete <code>installed.lock</code> to re-run the installer.'));
+    http_response_code(403);
+    die(vendorPage_html('Already Installed',
+        '<p>Sublicious is already installed. <a href="/">Go to the app &rarr;</a></p>
+         <p style="margin-top:.75rem;font-size:.82rem;color:#9ca3af">Delete <code>installed.lock</code> to re-run the installer.</p>',
+        '', false));
 }
 
+// ─── Handle missing vendor/ ──────────────────────────────────────────────────
 if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
-    die(renderError('Missing Dependencies', 'The <code>vendor/</code> directory is missing.<br>Run <code>composer install --no-dev</code> locally, then upload the <code>vendor/</code> folder to the server.'));
+    handleVendorSetup();
+    exit;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Vendor-setup page (shown when composer dependencies are not installed yet)
+// ────────────────────────────────────────────────────────────────────────────
+function handleVendorSetup(): void
+{
+    $output   = '';
+    $success  = false;
+    $errorMsg = '';
+
+    // Detect exec availability
+    $disabledFns = array_map('trim', explode(',', (string) ini_get('disable_functions')));
+    $execAvail   = function_exists('exec') && !in_array('exec', $disabledFns);
+    $shellAvail  = function_exists('shell_exec') && !in_array('shell_exec', $disabledFns);
+
+    // Find composer binary
+    $composerBin = '';
+    if ($execAvail) {
+        foreach (['composer', 'composer.phar'] as $try) {
+            exec("which $try 2>/dev/null", $out, $rc);
+            if ($rc === 0 && !empty(trim($out[0] ?? ''))) {
+                $composerBin = trim($out[0]);
+                break;
+            }
+            $out = [];
+        }
+        // composer.phar in project root?
+        if (!$composerBin && file_exists(__DIR__ . '/composer.phar')) {
+            $composerBin = PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/composer.phar');
+        }
+    }
+
+    // ── POST: download composer.phar ──────────────────────────────────────────
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['download_composer'])) {
+        $phar = @file_get_contents('https://getcomposer.org/composer.phar');
+        if ($phar !== false) {
+            file_put_contents(__DIR__ . '/composer.phar', $phar);
+            $composerBin = PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/composer.phar');
+            $success  = false; // still need to run install
+            $output   = "composer.phar downloaded. Click 'Run composer install' to continue.";
+        } else {
+            $errorMsg = 'Could not download composer.phar. Check allow_url_fopen and outbound network access.';
+        }
+    }
+
+    // ── POST: run composer install ────────────────────────────────────────────
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_composer']) && $composerBin) {
+        $cmd   = $composerBin . ' install --no-dev --no-interaction --prefer-dist 2>&1';
+        $lines = [];
+        $rc    = 0;
+        if ($execAvail) {
+            exec($cmd, $lines, $rc);
+        } elseif ($shellAvail) {
+            $lines = explode("\n", (string) shell_exec($cmd));
+            $rc    = file_exists(__DIR__ . '/vendor/autoload.php') ? 0 : 1;
+        }
+        $output  = implode("\n", $lines);
+        $success = $rc === 0 && file_exists(__DIR__ . '/vendor/autoload.php');
+        if ($success) {
+            // Redirect to installer step 1
+            header('Location: install.php?step=1');
+            exit;
+        } else {
+            $errorMsg = 'composer install failed (exit code ' . $rc . '). See output below.';
+        }
+    }
+
+    $pharExists      = file_exists(__DIR__ . '/composer.phar');
+    $composerPresent = !empty($composerBin);
+
+    // Build action buttons
+    $buttons = '';
+    if ($composerPresent) {
+        $label   = htmlspecialchars($composerBin);
+        $buttons .= '<form method="post" style="display:inline">
+            <input type="hidden" name="run_composer" value="1">
+            <button type="submit" class="btn btn-primary">&#9654; Run composer install</button>
+        </form> ';
+    }
+    if ($execAvail || $shellAvail) {
+        if (!$pharExists) {
+            $buttons .= '<form method="post" style="display:inline">
+                <input type="hidden" name="download_composer" value="1">
+                <button type="submit" class="btn btn-secondary">&#8595; Download composer.phar first</button>
+            </form>';
+        } elseif (!$composerPresent) {
+            // phar exists but wasn't found by which — offer to run it
+            $safeBin = PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/composer.phar');
+            $buttons .= '<form method="post" style="display:inline">
+                <input type="hidden" name="run_composer" value="1">
+                <button type="submit" class="btn btn-primary">&#9654; Run composer.phar install</button>
+            </form>';
+        }
+    }
+    if (!$buttons) {
+        $buttons = '<p style="color:#9ca3af;font-size:.85rem">exec() and shell_exec() are disabled on this server — use the manual steps below.</p>';
+    }
+
+    $outputHtml = $output ? '<pre style="background:#1e293b;color:#e2e8f0;border-radius:.65rem;padding:1rem;font-size:.78rem;overflow-x:auto;margin-top:1.25rem;max-height:260px;overflow-y:auto">'
+        . htmlspecialchars($output) . '</pre>' : '';
+    $errorHtml = $errorMsg ? '<div class="alert alert-error" style="margin-bottom:1rem">' . htmlspecialchars($errorMsg) . '</div>' : '';
+
+    $manual = <<<HTML
+<details style="margin-top:1.5rem">
+  <summary style="cursor:pointer;font-size:.85rem;font-weight:600;color:#64748b">Manual install instructions (click to expand)</summary>
+  <ol style="margin:.75rem 0 0 1.25rem;font-size:.83rem;color:#64748b;line-height:1.9">
+    <li>On your local machine, clone the repo and run:<br><code>composer install --no-dev --prefer-dist</code></li>
+    <li>Upload the generated <code>vendor/</code> folder to the same location on your server via FTP/SFTP.</li>
+    <li>Reload this page — the installer will continue automatically.</li>
+  </ol>
+</details>
+HTML;
+
+    $body = <<<HTML
+<p style="color:#64748b;font-size:.88rem;margin-bottom:1.5rem">
+    PHP dependencies are not installed yet (<code>vendor/</code> is missing).
+    The installer can run <strong>composer install</strong> for you if composer is available on this server.
+</p>
+{$errorHtml}
+<div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center">
+    {$buttons}
+</div>
+{$outputHtml}
+{$manual}
+HTML;
+
+    echo vendorPage_html('Install Dependencies', $body, $composerBin, true);
+}
+
+function vendorPage_html(string $title, string $body, string $composerBin, bool $showRefresh): string
+{
+    $refresh = $showRefresh ? '<meta http-equiv="refresh" content="5;url=install.php">' : '';
+    return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sublicious Installer — {$title}</title>
+{$refresh}
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#fff7ed 0%,#fef3c7 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem}
+.logo{font-size:1.8rem;font-weight:800;color:#ea580c;margin-bottom:.25rem;letter-spacing:-.03em}
+.logo span{color:#9a3412}
+.subtitle{font-size:.85rem;color:#9a3412;margin-bottom:2rem;opacity:.8}
+.card{background:#fff;border-radius:1.25rem;box-shadow:0 8px 40px rgba(0,0,0,.10);width:100%;max-width:580px;overflow:hidden}
+.card-header{background:linear-gradient(135deg,#ea580c,#c2410c);padding:1.5rem 2rem;color:#fff}
+.card-header h2{font-size:1.15rem;font-weight:700}
+.card-header p{font-size:.82rem;opacity:.85;margin-top:.25rem}
+.card-body{padding:2rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.7rem 1.5rem;border-radius:.65rem;font-size:.88rem;font-weight:600;cursor:pointer;border:none;transition:background .2s}
+.btn-primary{background:#ea580c;color:#fff}.btn-primary:hover{background:#c2410c}
+.btn-secondary{background:#f3f4f6;color:#374151}.btn-secondary:hover{background:#e5e7eb}
+.alert-error{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:.65rem;padding:.85rem 1rem;font-size:.85rem}
+code{background:#f1f5f9;padding:.2em .4em;border-radius:.3rem;font-size:.88em}
+</style>
+</head>
+<body>
+<div class="logo">&#127860; Sublici<span>ous</span></div>
+<p class="subtitle">Restaurant &amp; Delivery Management — Web Installer</p>
+<div class="card">
+    <div class="card-header">
+        <h2>{$title}</h2>
+        <p>Sublicious Web Installer</p>
+    </div>
+    <div class="card-body">{$body}</div>
+</div>
+</body>
+</html>
+HTML;
 }
 
 session_start();
