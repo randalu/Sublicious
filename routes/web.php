@@ -66,10 +66,12 @@ Route::middleware(['auth', 'verified', 'business'])->prefix('app')->name('app.')
     Route::get('/tables/{table}/session', \App\Livewire\App\Tables\TableSession::class)->name('tables.session');
 
     // Menu
-    Route::get('/menu', \App\Livewire\App\Menu\ItemList::class)->name('menu');
+    Route::get('/menu/items', \App\Livewire\App\Menu\ItemList::class)->name('menu.items');
+    Route::get('/menu/items/create', \App\Livewire\App\Menu\ItemForm::class)->name('menu.items.create');
+    Route::get('/menu/items/{item}/edit', \App\Livewire\App\Menu\ItemForm::class)->name('menu.items.edit');
     Route::get('/menu/categories', \App\Livewire\App\Menu\CategoryList::class)->name('menu.categories');
     Route::get('/menu/addons', \App\Livewire\App\Menu\AddonGroupManager::class)->name('menu.addons');
-    Route::get('/menu/items/{item}/edit', \App\Livewire\App\Menu\ItemForm::class)->name('menu.items.edit');
+    Route::get('/menu', \App\Livewire\App\Menu\ItemList::class)->name('menu');
 
     // Delivery
     Route::get('/delivery', \App\Livewire\App\Delivery\DeliveryBoard::class)->name('delivery');
