@@ -10,10 +10,14 @@ class Integrations extends Component
     // Google Maps
     public string $google_maps_key = '';
 
-    // SMS
-    public string $sms_gateway_provider = 'twilio';
-    public string $sms_gateway_key      = '';
-    public string $sms_sender_id        = '';
+    // SMS (SMSlenz)
+    public string $sms_user_id   = '';
+    public string $sms_api_key   = '';
+    public string $sms_sender_id = '';
+    public string $sms_base_url  = 'https://smslenz.lk/api';
+
+    // Test SMS
+    public string $testPhone = '';
 
     // UI state
     public bool $showMapsKey = false;
@@ -23,19 +27,21 @@ class Integrations extends Component
     {
         $business = auth()->user()->business;
 
-        $this->google_maps_key       = $business->getSetting('google_maps_key', '');
-        $this->sms_gateway_provider  = $business->getSetting('sms_gateway_provider', 'twilio');
-        $this->sms_gateway_key       = $business->getSetting('sms_gateway_key', '');
-        $this->sms_sender_id         = $business->getSetting('sms_sender_id', '');
+        $this->google_maps_key = $business->getSetting('google_maps_key', '');
+        $this->sms_user_id    = $business->getSetting('sms_user_id', '');
+        $this->sms_api_key    = $business->getSetting('sms_api_key', '');
+        $this->sms_sender_id  = $business->getSetting('sms_sender_id', '');
+        $this->sms_base_url   = $business->getSetting('sms_base_url', 'https://smslenz.lk/api');
     }
 
     protected function rules(): array
     {
         return [
-            'google_maps_key'      => 'nullable|string|max:200',
-            'sms_gateway_provider' => 'required|in:twilio,nexmo,custom',
-            'sms_gateway_key'      => 'nullable|string|max:300',
-            'sms_sender_id'        => 'nullable|string|max:100',
+            'google_maps_key' => 'nullable|string|max:200',
+            'sms_user_id'     => 'nullable|string|max:100',
+            'sms_api_key'     => 'nullable|string|max:300',
+            'sms_sender_id'   => 'nullable|string|max:50',
+            'sms_base_url'    => 'nullable|url|max:300',
         ];
     }
 
@@ -44,27 +50,33 @@ class Integrations extends Component
         $this->validate();
 
         $business = auth()->user()->business;
-        $business->setSetting('google_maps_key',      $this->google_maps_key,      'integrations');
-        $business->setSetting('sms_gateway_provider', $this->sms_gateway_provider, 'integrations');
-        $business->setSetting('sms_gateway_key',      $this->sms_gateway_key,      'integrations');
-        $business->setSetting('sms_sender_id',        $this->sms_sender_id,        'integrations');
+        $business->setSetting('google_maps_key', $this->google_maps_key, 'integrations');
+        $business->setSetting('sms_user_id',     $this->sms_user_id,     'integrations');
+        $business->setSetting('sms_api_key',     $this->sms_api_key,     'integrations');
+        $business->setSetting('sms_sender_id',   $this->sms_sender_id,   'integrations');
+        $business->setSetting('sms_base_url',    $this->sms_base_url,    'integrations');
 
         session()->flash('success', 'Integration settings saved.');
     }
 
     public function testSms(): void
     {
-        $business = auth()->user()->business;
-        if (! $business->phone) {
-            session()->flash('error', 'No business phone number configured.');
+        $phone = trim($this->testPhone);
+        if (! $phone) {
+            $phone = auth()->user()->business->phone;
+        }
+        if (! $phone) {
+            session()->flash('error', 'Enter a phone number or set a business phone first.');
             return;
         }
 
-        try {
-            app(SmsService::class)->send($business->phone, 'Test SMS from Sublicious');
-            session()->flash('success', 'Test SMS sent to ' . $business->phone);
-        } catch (\Throwable $e) {
-            session()->flash('error', 'Failed to send SMS: ' . $e->getMessage());
+        $business = auth()->user()->business;
+        $sent = app(SmsService::class)->sendTest($phone, $business->id);
+
+        if ($sent) {
+            session()->flash('success', 'Test SMS sent to ' . $phone);
+        } else {
+            session()->flash('error', 'Failed to send SMS. Check your API credentials.');
         }
     }
 
