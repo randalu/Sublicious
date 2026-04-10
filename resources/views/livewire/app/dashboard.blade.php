@@ -1,4 +1,45 @@
-<div>
+<div
+    x-data="{
+        showInstall: $persist(false).as('pwa_install_seen_count') < 2 && false,
+        installCount: $persist(0).as('pwa_install_seen_count'),
+        canInstall: false,
+        init() {
+            window.addEventListener('pwa-installable', () => {
+                this.canInstall = true;
+                if (this.installCount < 2) {
+                    this.showInstall = true;
+                    this.installCount++;
+                }
+            });
+        },
+        async install() {
+            if (!window.deferredInstallPrompt) return;
+            window.deferredInstallPrompt.prompt();
+            const { outcome } = await window.deferredInstallPrompt.userChoice;
+            window.deferredInstallPrompt = null;
+            this.showInstall = false;
+        },
+        dismiss() { this.showInstall = false; }
+    }"
+>
+    {{-- PWA Install Prompt --}}
+    <div x-show="showInstall && canInstall" x-transition
+         class="mb-4 flex items-center justify-between gap-4 bg-primary-600 text-white rounded-xl px-5 py-3.5 shadow">
+        <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <div>
+                <p class="font-semibold text-sm">Install Sublicious</p>
+                <p class="text-xs text-primary-200">Add to your home screen for quick access</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button @click="install()" class="px-3 py-1.5 bg-white text-primary-700 text-sm font-semibold rounded-lg hover:bg-primary-50 transition-colors">Install</button>
+            <button @click="dismiss()" class="text-primary-200 hover:text-white">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+    </div>
+
     {{-- Stats --}}
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 mb-6">
         @php
