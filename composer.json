@@ -17,7 +17,7 @@
         "league/csv": "^9.28",
         "livewire/livewire": "^4.2",
         "minishlink/web-push": "^10.0",
-        "spatie/laravel-activitylog": "^5.0",
+        "spatie/laravel-activitylog": "^4.9",
         "spatie/laravel-permission": "^7.3"
     },
     "require-dev": {
@@ -85,6 +85,23 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "platform": {
+            "php": "8.3.0",
+            "ext-bcmath": "1",
+            "ext-ctype": "1",
+            "ext-curl": "1",
+            "ext-dom": "1",
+            "ext-fileinfo": "1",
+            "ext-json": "1",
+            "ext-mbstring": "1",
+            "ext-openssl": "1",
+            "ext-pdo": "1",
+            "ext-pdo_mysql": "1",
+            "ext-tokenizer": "1",
+            "ext-xml": "1",
+            "ext-xmlwriter": "1",
+            "ext-zip": "1"
+        },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
