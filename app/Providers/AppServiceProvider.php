@@ -16,6 +16,5 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Cashier::useCustomerModel(Business::class);
-        Cashier::ignoreMigrations();
     }
 }
