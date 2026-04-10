@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Offline — Sublicious</title>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; }
+        .card { text-align: center; padding: 2rem; max-width: 400px; }
+        h1 { font-size: 1.5rem; font-weight: 700; color: #111827; }
+        p { color: #6b7280; margin-top: 0.5rem; }
+        button { margin-top: 1.5rem; background: #ea580c; color: white; border: none; padding: 0.75rem 2rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div style="font-size:3rem">📡</div>
+        <h1>You're offline</h1>
+        <p>Sublicious requires an internet connection to work. Please check your connection and try again.</p>
+        <button onclick="window.location.reload()">Try Again</button>
+    </div>
+</body>
+</html>

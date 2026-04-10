@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../../app/Livewire/**/*.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-primary-50: oklch(0.97 0.02 30);
+    --color-primary-100: oklch(0.93 0.05 30);
+    --color-primary-200: oklch(0.87 0.09 30);
+    --color-primary-300: oklch(0.79 0.14 30);
+    --color-primary-400: oklch(0.72 0.19 30);
+    --color-primary-500: oklch(0.65 0.22 30);
+    --color-primary-600: oklch(0.56 0.21 30);
+    --color-primary-700: oklch(0.48 0.19 30);
+    --color-primary-800: oklch(0.40 0.16 30);
+    --color-primary-900: oklch(0.33 0.12 30);
+    --color-primary-950: oklch(0.24 0.09 30);
+}
+
+/* Thermal receipt print styles */
+@media print {
+    body * { visibility: hidden; }
+    #receipt-print-area, #receipt-print-area * { visibility: visible; }
+    #receipt-print-area { position: absolute; left: 0; top: 0; width: 80mm; }
+}
