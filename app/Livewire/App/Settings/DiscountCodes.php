@@ -29,7 +29,7 @@ class DiscountCodes extends Component
     protected function rules(): array
     {
         return [
-            'code'             => 'required|string|max:50|uppercase',
+            'code'             => 'required|string|max:50',
             'name'             => 'required|string|max:200',
             'type'             => 'required|in:percentage,fixed',
             'value'            => 'required|numeric|min:0',
