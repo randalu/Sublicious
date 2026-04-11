@@ -1,0 +1,9 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Route everything through the public/ directory.
+    # Static assets (JS/CSS/images) are served directly from public/.
+    # All other requests fall through to public/index.php via public/.htaccess.
+    RewriteRule ^$ public/ [L]
+    RewriteRule (.*) public/$1 [L]
+</IfModule>
