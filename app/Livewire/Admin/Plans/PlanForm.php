@@ -115,7 +115,7 @@ class PlanForm extends Component
             session()->flash('success', 'Plan created.');
         }
 
-        $this->redirect(route('admin.plans'), navigate: true);
+        $this->redirect(route('admin.plans'), navigate: false);
     }
 
     public function render()

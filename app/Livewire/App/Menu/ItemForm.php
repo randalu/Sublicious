@@ -175,7 +175,7 @@ class ItemForm extends Component
         $item->addonGroups()->sync($syncData);
 
         session()->flash('success', $this->item ? 'Item updated.' : 'Item created.');
-        $this->redirectRoute('app.menu.items', navigate: true);
+        $this->redirectRoute('app.menu.items', navigate: false);
     }
 
     public function render()

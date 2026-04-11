@@ -304,7 +304,7 @@ class OrderCreate extends Component
             }
 
             session()->flash('success', 'Order #' . $order->order_number . ' placed successfully.');
-            $this->redirectRoute('app.orders.show', ['order' => $order->id], navigate: true);
+            $this->redirectRoute('app.orders.show', ['order' => $order->id], navigate: false);
         });
     }
 

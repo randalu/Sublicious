@@ -129,7 +129,7 @@ class BusinessForm extends Component
             session()->flash('success', "Business created. Admin login: {$business->email} / {$tempPassword}");
         }
 
-        $this->redirect(route('admin.businesses'), navigate: true);
+        $this->redirect(route('admin.businesses'), navigate: false);
     }
 
     public function render()
