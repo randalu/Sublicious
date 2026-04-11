@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Business;
 use App\Models\Plan;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
@@ -26,6 +27,8 @@ class BusinessForm extends Component
     public string $plan_id  = '';
     public bool   $is_active   = true;
     public bool   $is_verified = false;
+
+    public string $saveError = '';
 
     public function mount(?Business $business = null): void
     {
@@ -85,6 +88,7 @@ class BusinessForm extends Component
 
     public function save(): void
     {
+        $this->saveError = '';
         $this->validate();
 
         $data = [
@@ -103,30 +107,41 @@ class BusinessForm extends Component
             'is_verified' => $this->is_verified,
         ];
 
-        if ($this->businessId) {
-            $business = Business::findOrFail($this->businessId);
-            $old = $business->only(array_keys($data));
-            $business->update($data);
-            AuditLog::record('business_updated', null, Business::class, $business->id, $old, $data);
-            session()->flash('success', 'Business updated successfully.');
-        } else {
-            $data['subscription_status'] = 'active';
-            $business = Business::create($data);
+        try {
+            if ($this->businessId) {
+                DB::transaction(function () use ($data) {
+                    $business = Business::findOrFail($this->businessId);
+                    $old = $business->only(array_keys($data));
+                    $business->update($data);
+                    AuditLog::record('business_updated', null, Business::class, $business->id, $old, $data);
+                });
+                session()->flash('success', 'Business updated successfully.');
+            } else {
+                $tempPassword = Str::random(12);
+                $businessEmail = $data['email'];
 
-            // Create default admin user for the new business
-            $tempPassword = Str::random(12);
-            User::create([
-                'business_id'       => $business->id,
-                'name'              => $business->name . ' Admin',
-                'email'             => $business->email,
-                'password'          => $tempPassword,
-                'role'              => 'admin',
-                'is_active'         => true,
-                'email_verified_at' => now(),
-            ]);
+                DB::transaction(function () use ($data, $tempPassword) {
+                    $data['subscription_status'] = 'active';
+                    $business = Business::create($data);
 
-            AuditLog::record('business_created', null, Business::class, $business->id, [], $data);
-            session()->flash('success', "Business created. Admin login: {$business->email} / {$tempPassword}");
+                    User::create([
+                        'business_id'       => $business->id,
+                        'name'              => $business->name . ' Admin',
+                        'email'             => $business->email,
+                        'password'          => $tempPassword,
+                        'role'              => 'admin',
+                        'is_active'         => true,
+                        'email_verified_at' => now(),
+                    ]);
+
+                    AuditLog::record('business_created', null, Business::class, $business->id, [], $data);
+                });
+
+                session()->flash('success', "Business created. Admin login: {$businessEmail} / {$tempPassword}");
+            }
+        } catch (\Throwable $e) {
+            $this->saveError = 'Could not save: ' . $e->getMessage();
+            return;
         }
 
         $this->redirect(route('admin.businesses'), navigate: false);
