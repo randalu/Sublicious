@@ -393,7 +393,11 @@ function runInstallation(): bool|string
         // Seed plans + super admin
         Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
 
-        // Storage link
+        // Storage link — remove stale symlink first so re-runs don't fail
+        $storageLink = __DIR__ . '/public/storage';
+        if (is_link($storageLink)) {
+            unlink($storageLink);
+        }
         Illuminate\Support\Facades\Artisan::call('storage:link', ['--force' => true]);
 
         // Save SMS platform settings
