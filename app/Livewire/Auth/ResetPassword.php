@@ -29,7 +29,7 @@ class ResetPassword extends Component
         $this->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8|same:passwordConfirmation',
         ]);
 
         $status = Password::reset(
@@ -43,7 +43,7 @@ class ResetPassword extends Component
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            $this->redirect(route('login') . '?reset=1', navigate: true);
+            $this->redirect(route('login') . '?reset=1', navigate: false);
         } else {
             $this->error = __($status);
         }
