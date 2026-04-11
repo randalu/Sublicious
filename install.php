@@ -224,13 +224,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS),
                         RecursiveIteratorIterator::SELF_FIRST
                     );
-                    @chmod($base, 0775);
+                    @chmod($base, 0777);
                     foreach ($iter as $item) {
-                        @chmod($item->getPathname(), $item->isDir() ? 0775 : 0664);
+                        @chmod($item->getPathname(), $item->isDir() ? 0777 : 0664);
                     }
                 }
                 // Also chmod project root
-                @chmod(__DIR__, 0775);
+                @chmod(__DIR__, 0775); // root dir — 775 is fine
                 redirect(1); // reload to re-run checks
             }
             $_SESSION['step'] = 2;
@@ -556,7 +556,7 @@ function checkRequirements(): array
     ];
     foreach ($writablePaths as $path) {
         if (is_dir($path) && !is_writable($path)) {
-            @chmod($path, 0775);
+            @chmod($path, 0777); // 777 needed on shared hosting when PHP user ≠ file owner
         }
     }
 
