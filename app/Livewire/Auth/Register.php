@@ -93,7 +93,7 @@ class Register extends Component
         $this->validate([
             'adminName' => 'required|string|min:2|max:100',
             'adminEmail' => 'required|email|unique:users,email',
-            'adminPassword' => 'required|string|min:8|confirmed',
+            'adminPassword' => 'required|string|min:8|same:adminPasswordConfirmation',
             'agreeTerms' => 'accepted',
         ]);
     }
@@ -151,7 +151,7 @@ class Register extends Component
             session()->regenerate();
         });
 
-        $this->redirect(route('app.dashboard'), navigate: true);
+        $this->redirect(route('app.dashboard'), navigate: false);
     }
 
     public function getPlansProperty()
