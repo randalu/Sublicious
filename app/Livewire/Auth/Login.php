@@ -51,9 +51,9 @@ class Login extends Component
         session()->regenerate();
 
         if ($user->isSuperAdmin()) {
-            $this->redirect(route('admin.dashboard'), navigate: true);
+            $this->redirect(route('admin.dashboard'), navigate: false);
         } else {
-            $this->redirect(route('app.dashboard'), navigate: true);
+            $this->redirect(route('app.dashboard'), navigate: false);
         }
     }
 
