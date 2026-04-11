@@ -305,7 +305,7 @@ class TableSession extends Component
 
         $this->showPayModal = false;
         session()->flash('success', 'Table closed and bill created.');
-        $this->redirectRoute('app.tables', navigate: true);
+        $this->redirectRoute('app.tables', navigate: false);
     }
 
     public function render()

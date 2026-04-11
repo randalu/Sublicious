@@ -46,7 +46,7 @@ class BusinessDetail extends Component
         }
         $this->business->delete();
         session()->flash('success', 'Business deleted.');
-        $this->redirect(route('admin.businesses'), navigate: true);
+        $this->redirect(route('admin.businesses'), navigate: false);
     }
 
     public function changePlan(int $planId): void
