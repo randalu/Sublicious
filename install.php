@@ -393,12 +393,20 @@ function runInstallation(): bool|string
         // Seed plans + super admin
         Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
 
-        // Storage link — remove stale symlink first so re-runs don't fail
-        $storageLink = __DIR__ . '/public/storage';
-        if (is_link($storageLink)) {
-            unlink($storageLink);
+        // Storage link — non-fatal: symlink may already exist (e.g. created by root via CLI)
+        $storageLink   = __DIR__ . '/public/storage';
+        $storageTarget = __DIR__ . '/storage/app/public';
+        $linkOk = is_link($storageLink) && (realpath($storageLink) === realpath($storageTarget));
+        if (!$linkOk) {
+            if (is_link($storageLink)) {
+                @unlink($storageLink); // best-effort; ignore if owned by different user
+            }
+            if (!is_link($storageLink)) {
+                // Only call artisan if the symlink still doesn't exist after unlink attempt
+                Illuminate\Support\Facades\Artisan::call('storage:link', ['--force' => true]);
+            }
+            // If we still can't create it, just continue — app works, uploads just won't serve via /storage
         }
-        Illuminate\Support\Facades\Artisan::call('storage:link', ['--force' => true]);
 
         // Save SMS platform settings
         if (!empty($sms['sms_user_id']) && !empty($sms['sms_api_key'])) {
