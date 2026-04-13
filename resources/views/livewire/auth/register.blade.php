@@ -24,6 +24,10 @@
         </div>
     </div>
 
+    @if($saveError)
+        <div class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{{ $saveError }}</div>
+    @endif
+
     {{-- Step 1: Business Info --}}
     @if($step === 1)
         <h2 class="text-xl font-bold text-gray-900 mb-6">Tell us about your business</h2>

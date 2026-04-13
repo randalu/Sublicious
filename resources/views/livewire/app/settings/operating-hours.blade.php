@@ -3,6 +3,10 @@
         <div class="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>
     @endif
 
+    @if($saveError)
+        <div class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{{ $saveError }}</div>
+    @endif
+
     <div class="bg-white rounded-xl border border-gray-200 p-6">
         <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-5">Weekly Schedule</h2>
 

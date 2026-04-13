@@ -3,10 +3,13 @@
 namespace App\Livewire\Admin\Plans;
 
 use App\Models\Plan;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class PlanForm extends Component
 {
+    public string $saveError = '';
+
     public ?int   $planId          = null;
     public string $name            = '';
     public string $slug            = '';
@@ -79,6 +82,7 @@ class PlanForm extends Component
 
     public function save(): void
     {
+        $this->saveError = '';
         $this->validate();
 
         $features = [
@@ -103,18 +107,30 @@ class PlanForm extends Component
             'features'           => $features,
         ];
 
-        if ($this->is_default) {
-            Plan::where('is_default', true)->update(['is_default' => false]);
+        $isUpdate = (bool) $this->planId;
+
+        try {
+            DB::transaction(function () use ($data) {
+                if ($this->is_default) {
+                    $query = Plan::where('is_default', true);
+                    if ($this->planId) {
+                        $query->where('id', '!=', $this->planId);
+                    }
+                    $query->update(['is_default' => false]);
+                }
+
+                if ($this->planId) {
+                    Plan::findOrFail($this->planId)->update($data);
+                } else {
+                    Plan::create($data);
+                }
+            });
+        } catch (\Throwable $e) {
+            $this->saveError = 'Could not save: ' . $e->getMessage();
+            return;
         }
 
-        if ($this->planId) {
-            Plan::findOrFail($this->planId)->update($data);
-            session()->flash('success', 'Plan updated.');
-        } else {
-            Plan::create($data);
-            session()->flash('success', 'Plan created.');
-        }
-
+        session()->flash('success', $isUpdate ? 'Plan updated.' : 'Plan created.');
         $this->redirect(route('admin.plans'), navigate: false);
     }
 

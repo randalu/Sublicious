@@ -6,6 +6,10 @@
         <h1 class="text-2xl font-bold text-gray-900">{{ $item ? 'Edit: ' . $item->name : 'New Menu Item' }}</h1>
     </div>
 
+    @if($saveError)
+        <div class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{{ $saveError }}</div>
+    @endif
+
     <form wire:submit="save" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {{-- LEFT: Main info --}}

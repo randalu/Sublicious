@@ -38,6 +38,8 @@ class Register extends Component
     public string $adminPasswordConfirmation = '';
     public bool $agreeTerms = false;
 
+    public string $saveError = '';
+
     public function mount(): void
     {
         $defaultPlan = Plan::getDefault();
@@ -100,56 +102,62 @@ class Register extends Component
 
     public function register(): void
     {
+        $this->saveError = '';
         $this->validateStep3();
 
-        DB::transaction(function () {
-            $slug = Str::slug($this->businessName) . '-' . Str::random(4);
-            $plan = Plan::findOrFail($this->selectedPlanId);
+        try {
+            DB::transaction(function () {
+                $slug = Str::slug($this->businessName) . '-' . Str::random(4);
+                $plan = Plan::findOrFail($this->selectedPlanId);
 
-            $business = Business::create([
-                'plan_id' => $plan->id,
-                'name' => $this->businessName,
-                'slug' => $slug,
-                'email' => $this->businessEmail,
-                'phone' => $this->businessPhone,
-                'address' => $this->businessAddress,
-                'city' => $this->businessCity,
-                'country' => $this->businessCountry,
-                'currency' => $this->currency,
-                'timezone' => $this->timezone,
-                'subscription_status' => 'trialing',
-                'trial_ends_at' => now()->addDays(14),
-                'is_active' => true,
-                'is_verified' => false,
-            ]);
-
-            $user = User::create([
-                'business_id' => $business->id,
-                'name' => $this->adminName,
-                'email' => $this->adminEmail,
-                'password' => Hash::make($this->adminPassword),
-                'role' => 'admin',
-                'is_active' => true,
-            ]);
-
-            // Seed default operating hours (Mon-Fri 9-5, closed weekends)
-            for ($day = 0; $day <= 6; $day++) {
-                $business->operatingHours()->create([
-                    'day_of_week' => $day,
-                    'open_time' => '09:00',
-                    'close_time' => '21:00',
-                    'is_closed' => in_array($day, [0]), // Sunday closed by default
+                $business = Business::create([
+                    'plan_id' => $plan->id,
+                    'name' => $this->businessName,
+                    'slug' => $slug,
+                    'email' => $this->businessEmail,
+                    'phone' => $this->businessPhone,
+                    'address' => $this->businessAddress,
+                    'city' => $this->businessCity,
+                    'country' => $this->businessCountry,
+                    'currency' => $this->currency,
+                    'timezone' => $this->timezone,
+                    'subscription_status' => 'trialing',
+                    'trial_ends_at' => now()->addDays(14),
+                    'is_active' => true,
+                    'is_verified' => false,
                 ]);
-            }
 
-            AuditLog::record('business_registered', $business->id, Business::class, $business->id, [], [
-                'name' => $business->name,
-                'plan' => $plan->name,
-            ], 'registration');
+                $user = User::create([
+                    'business_id' => $business->id,
+                    'name' => $this->adminName,
+                    'email' => $this->adminEmail,
+                    'password' => Hash::make($this->adminPassword),
+                    'role' => 'admin',
+                    'is_active' => true,
+                ]);
 
-            Auth::login($user);
-            session()->regenerate();
-        });
+                // Seed default operating hours (Mon-Fri 9-5, closed weekends)
+                for ($day = 0; $day <= 6; $day++) {
+                    $business->operatingHours()->create([
+                        'day_of_week' => $day,
+                        'open_time' => '09:00',
+                        'close_time' => '21:00',
+                        'is_closed' => in_array($day, [0]), // Sunday closed by default
+                    ]);
+                }
+
+                AuditLog::record('business_registered', $business->id, Business::class, $business->id, [], [
+                    'name' => $business->name,
+                    'plan' => $plan->name,
+                ], 'registration');
+
+                Auth::login($user);
+                session()->regenerate();
+            });
+        } catch (\Throwable $e) {
+            $this->saveError = 'Could not complete registration: ' . $e->getMessage();
+            return;
+        }
 
         $this->redirect(route('app.dashboard'), navigate: false);
     }

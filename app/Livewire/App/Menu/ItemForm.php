@@ -6,6 +6,7 @@ use App\Models\AddonGroup;
 use App\Models\InventoryItem;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -33,6 +34,8 @@ class ItemForm extends Component
 
     // Addon groups — array of attached group IDs
     public array $attachedAddonGroupIds = [];
+
+    public string $saveError = '';
 
     protected function rules(): array
     {
@@ -111,6 +114,7 @@ class ItemForm extends Component
 
     public function save(): void
     {
+        $this->saveError = '';
         $data = $this->validate();
 
         $imagePath = $this->item?->image;
@@ -134,47 +138,56 @@ class ItemForm extends Component
             'image'                   => $imagePath,
         ];
 
-        if ($this->item) {
-            $this->item->update($attributes);
-            $item = $this->item;
-        } else {
-            $attributes['sort_order'] = MenuItem::max('sort_order') + 1;
-            $item = MenuItem::create($attributes);
+        $isUpdate = (bool) $this->item;
+
+        try {
+            DB::transaction(function () use ($attributes, $isUpdate) {
+                if ($isUpdate) {
+                    $this->item->update($attributes);
+                    $item = $this->item;
+                } else {
+                    $attributes['sort_order'] = MenuItem::max('sort_order') + 1;
+                    $item = MenuItem::create($attributes);
+                }
+
+                // Sync variants
+                $keptIds = [];
+                foreach ($this->variants as $v) {
+                    if (! empty($v['id'])) {
+                        $item->variants()->where('id', $v['id'])->update([
+                            'name'             => $v['name'],
+                            'price_type'       => $v['price_type'],
+                            'price_adjustment' => $v['price_adjustment'],
+                            'is_available'     => $v['is_available'] ?? true,
+                        ]);
+                        $keptIds[] = $v['id'];
+                    } else {
+                        $new = $item->variants()->create([
+                            'business_id'      => $item->business_id,
+                            'name'             => $v['name'],
+                            'price_type'       => $v['price_type'],
+                            'price_adjustment' => $v['price_adjustment'],
+                            'is_available'     => $v['is_available'] ?? true,
+                            'sort_order'       => count($keptIds),
+                        ]);
+                        $keptIds[] = $new->id;
+                    }
+                }
+                $item->variants()->whereNotIn('id', $keptIds)->delete();
+
+                // Sync addon groups
+                $syncData = [];
+                foreach ($this->attachedAddonGroupIds as $index => $groupId) {
+                    $syncData[$groupId] = ['sort_order' => $index];
+                }
+                $item->addonGroups()->sync($syncData);
+            });
+        } catch (\Throwable $e) {
+            $this->saveError = 'Could not save: ' . $e->getMessage();
+            return;
         }
 
-        // Sync variants
-        $keptIds = [];
-        foreach ($this->variants as $v) {
-            if (! empty($v['id'])) {
-                $item->variants()->where('id', $v['id'])->update([
-                    'name'             => $v['name'],
-                    'price_type'       => $v['price_type'],
-                    'price_adjustment' => $v['price_adjustment'],
-                    'is_available'     => $v['is_available'] ?? true,
-                ]);
-                $keptIds[] = $v['id'];
-            } else {
-                $new = $item->variants()->create([
-                    'business_id'      => $item->business_id,
-                    'name'             => $v['name'],
-                    'price_type'       => $v['price_type'],
-                    'price_adjustment' => $v['price_adjustment'],
-                    'is_available'     => $v['is_available'] ?? true,
-                    'sort_order'       => count($keptIds),
-                ]);
-                $keptIds[] = $new->id;
-            }
-        }
-        $item->variants()->whereNotIn('id', $keptIds)->delete();
-
-        // Sync addon groups
-        $syncData = [];
-        foreach ($this->attachedAddonGroupIds as $index => $groupId) {
-            $syncData[$groupId] = ['sort_order' => $index];
-        }
-        $item->addonGroups()->sync($syncData);
-
-        session()->flash('success', $this->item ? 'Item updated.' : 'Item created.');
+        session()->flash('success', $isUpdate ? 'Item updated.' : 'Item created.');
         $this->redirectRoute('app.menu.items', navigate: false);
     }
 
