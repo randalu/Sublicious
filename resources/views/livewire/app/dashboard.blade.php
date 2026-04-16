@@ -61,6 +61,27 @@
         @endforeach
     </div>
 
+    {{-- Low Stock Alert --}}
+    @if($lowStockItems->isNotEmpty())
+        <div class="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <h3 class="text-sm font-semibold text-amber-800">Low Stock Items</h3>
+                </div>
+                <a href="{{ route('app.inventory') }}?stockFilter=low" class="text-xs text-amber-700 hover:text-amber-900 font-medium">View all &rarr;</a>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                @foreach($lowStockItems as $item)
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm {{ $item->current_stock <= 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700' }}">
+                        <span class="font-medium">{{ $item->name }}</span>
+                        <span class="text-xs opacity-75">{{ number_format($item->current_stock, 1) }} {{ $item->unit }}</span>
+                    </span>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <div class="grid gap-6 lg:grid-cols-2">
         {{-- Pending Orders --}}
         <div class="bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5">
