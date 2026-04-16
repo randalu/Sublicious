@@ -9,6 +9,9 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderItemAddon;
+use App\Models\InventoryItem;
+use App\Notifications\LowStockNotification;
+use App\Notifications\NewOrderNotification;
 use App\Services\SmsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -214,9 +217,24 @@ class OnlineOrderController extends Controller
                         $order->id
                     );
                 }
-            } catch (\Throwable) {
-                // Don't fail order creation if SMS fails
-            }
+            } catch (\Throwable) {}
+
+            // Send email notifications if enabled
+            try {
+                $owner = $business->owner();
+                if ($owner?->email) {
+                    if ($business->getSetting('notify_new_order_email')) {
+                        $order->load('items');
+                        $owner->notify(new NewOrderNotification($order));
+                    }
+                    if ($business->getSetting('notify_low_stock_email') && $business->hasFeature('inventory')) {
+                        $lowItems = InventoryItem::forBusiness($business)->whereColumn('current_stock', '<=', 'low_stock_threshold')->get();
+                        if ($lowItems->isNotEmpty()) {
+                            $owner->notify(new LowStockNotification($lowItems));
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
 
             return response()->json([
                 'status'       => 'success',

@@ -11,6 +11,9 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\RestaurantTable;
+use App\Models\InventoryItem;
+use App\Notifications\LowStockNotification;
+use App\Notifications\NewOrderNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -326,6 +329,23 @@ class OrderCreate extends Component
                 $table = RestaurantTable::find($this->tableId);
                 $table?->update(['status' => 'occupied']);
             }
+
+            // Send email notifications if enabled
+            try {
+                $owner = $business->owner();
+                if ($owner?->email) {
+                    if ($business->getSetting('notify_new_order_email')) {
+                        $order->load('items');
+                        $owner->notify(new NewOrderNotification($order));
+                    }
+                    if ($business->getSetting('notify_low_stock_email') && $business->hasFeature('inventory')) {
+                        $lowItems = InventoryItem::whereColumn('current_stock', '<=', 'low_stock_threshold')->get();
+                        if ($lowItems->isNotEmpty()) {
+                            $owner->notify(new LowStockNotification($lowItems));
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
 
             session()->flash('success', 'Order #' . $order->order_number . ' placed successfully.');
             $this->redirectRoute('app.orders.show', ['order' => $order->id], navigate: false);
