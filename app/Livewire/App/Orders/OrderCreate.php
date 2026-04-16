@@ -5,6 +5,7 @@ namespace App\Livewire\App\Orders;
 use App\Models\Bill;
 use App\Models\BillItem;
 use App\Models\Customer;
+use App\Models\InventoryTransaction;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Order;
@@ -294,6 +295,29 @@ class OrderCreate extends Component
                         'price'               => $addon['price'],
                         'quantity'            => $addon['quantity'],
                     ]);
+                }
+            }
+
+            // Deduct inventory for tracked menu items
+            foreach ($this->cartItems as $cartItem) {
+                $menuItem = MenuItem::with('inventoryItems')->find($cartItem['menu_item_id']);
+                if ($menuItem && $menuItem->track_inventory) {
+                    foreach ($menuItem->inventoryItems as $invItem) {
+                        $deductQty = (float) $invItem->pivot->quantity_used * $cartItem['quantity'];
+                        $before = (float) $invItem->current_stock;
+                        $after  = max(0, $before - $deductQty);
+                        $invItem->update(['current_stock' => $after]);
+                        InventoryTransaction::create([
+                            'business_id'       => $invItem->business_id,
+                            'inventory_item_id' => $invItem->id,
+                            'type'              => 'deduction',
+                            'quantity'          => $deductQty,
+                            'quantity_before'   => $before,
+                            'quantity_after'    => $after,
+                            'notes'             => 'Order #' . $order->order_number,
+                            'user_id'           => auth()->id(),
+                        ]);
+                    }
                 }
             }
 

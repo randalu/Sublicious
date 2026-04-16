@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Business;
 use App\Models\Customer;
+use App\Models\InventoryTransaction;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -170,6 +171,29 @@ class OnlineOrderController extends Controller
                     foreach ($addons as $addon) {
                         $addon['order_item_id'] = $orderItem->id;
                         OrderItemAddon::create($addon);
+                    }
+                }
+
+                // Deduct inventory for tracked menu items
+                foreach ($orderItemsData as $itemData) {
+                    $menuItem = MenuItem::with('inventoryItems')->find($itemData['menu_item_id']);
+                    if ($menuItem && $menuItem->track_inventory) {
+                        foreach ($menuItem->inventoryItems as $invItem) {
+                            $deductQty = (float) $invItem->pivot->quantity_used * $itemData['quantity'];
+                            $before = (float) $invItem->current_stock;
+                            $after  = max(0, $before - $deductQty);
+                            $invItem->update(['current_stock' => $after]);
+                            InventoryTransaction::create([
+                                'business_id'       => $business->id,
+                                'inventory_item_id' => $invItem->id,
+                                'type'              => 'deduction',
+                                'quantity'          => $deductQty,
+                                'quantity_before'   => $before,
+                                'quantity_after'    => $after,
+                                'notes'             => 'Order #' . $order->order_number,
+                                'user_id'           => null,
+                            ]);
+                        }
                     }
                 }
 

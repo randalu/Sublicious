@@ -34,6 +34,9 @@ class ItemForm extends Component
     // Addon groups — array of attached group IDs
     public array $attachedAddonGroupIds = [];
 
+    // Inventory items — [{inventory_item_id, quantity_used}]
+    public array $inventoryLinks = [];
+
     protected function rules(): array
     {
         return [
@@ -79,6 +82,11 @@ class ItemForm extends Component
             ])->toArray();
 
             $this->attachedAddonGroupIds = $this->item->addonGroups->pluck('id')->toArray();
+
+            $this->inventoryLinks = $this->item->inventoryItems->map(fn ($inv) => [
+                'inventory_item_id' => $inv->id,
+                'quantity_used'     => (string) $inv->pivot->quantity_used,
+            ])->toArray();
         }
     }
 
@@ -96,6 +104,19 @@ class ItemForm extends Component
     public function removeVariant(int $index): void
     {
         array_splice($this->variants, $index, 1);
+    }
+
+    public function addInventoryLink(): void
+    {
+        $this->inventoryLinks[] = [
+            'inventory_item_id' => '',
+            'quantity_used'     => '1',
+        ];
+    }
+
+    public function removeInventoryLink(int $index): void
+    {
+        array_splice($this->inventoryLinks, $index, 1);
     }
 
     public function toggleAddonGroup(int $groupId): void
@@ -174,18 +195,30 @@ class ItemForm extends Component
         }
         $item->addonGroups()->sync($syncData);
 
+        // Sync inventory links
+        $invSync = [];
+        foreach ($this->inventoryLinks as $link) {
+            if (! empty($link['inventory_item_id'])) {
+                $invSync[(int) $link['inventory_item_id']] = [
+                    'quantity_used' => (float) ($link['quantity_used'] ?: 1),
+                ];
+            }
+        }
+        $item->inventoryItems()->sync($invSync);
+
         session()->flash('success', $this->item ? 'Item updated.' : 'Item created.');
         $this->redirectRoute('app.menu.items', navigate: false);
     }
 
     public function render()
     {
-        $categories  = MenuCategory::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
-        $addonGroups = AddonGroup::with('items')->orderBy('name')->get();
+        $categories     = MenuCategory::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
+        $addonGroups    = AddonGroup::with('items')->orderBy('name')->get();
+        $inventoryItems = InventoryItem::orderBy('name')->get();
 
         $heading = $this->item ? 'Edit: ' . $this->item->name : 'New Menu Item';
 
-        return view('livewire.app.menu.item-form', compact('categories', 'addonGroups'))
+        return view('livewire.app.menu.item-form', compact('categories', 'addonGroups', 'inventoryItems'))
             ->layout('layouts.app', ['heading' => $heading]);
     }
 }

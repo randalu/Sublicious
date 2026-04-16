@@ -166,6 +166,52 @@
                     </div>
                 @endif
             </div>
+
+            {{-- Inventory Items (only shown when track_inventory is on and business has feature) --}}
+            @if(auth()->user()->business?->hasFeature('inventory'))
+                <div class="bg-white rounded-xl border border-gray-200 p-5" x-data x-show="$wire.trackInventory" x-cloak>
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Inventory Ingredients</h2>
+                            <p class="text-xs text-gray-400 mt-0.5">Link stock items that are consumed when this menu item is ordered</p>
+                        </div>
+                        <button type="button" wire:click="addInventoryLink"
+                                class="text-sm text-primary-600 font-medium hover:text-primary-700">+ Add Ingredient</button>
+                    </div>
+
+                    @if(empty($inventoryLinks))
+                        <p class="text-sm text-gray-400 italic">No inventory items linked.</p>
+                    @else
+                        <div class="space-y-3">
+                            @foreach($inventoryLinks as $i => $link)
+                                <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex-1 grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1">Inventory Item</label>
+                                            <select wire:model="inventoryLinks.{{ $i }}.inventory_item_id"
+                                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-500 focus:ring-primary-500">
+                                                <option value="">— Select —</option>
+                                                @foreach($inventoryItems as $inv)
+                                                    <option value="{{ $inv->id }}">{{ $inv->name }} ({{ $inv->unit }})</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1">Qty Used per Order</label>
+                                            <input wire:model="inventoryLinks.{{ $i }}.quantity_used" type="number" step="0.001" min="0.001"
+                                                   class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-500 focus:ring-primary-500">
+                                        </div>
+                                    </div>
+                                    <button type="button" wire:click="removeInventoryLink({{ $i }})"
+                                            class="mt-5 p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
         </div>
 
         {{-- RIGHT: Image + Actions --}}
