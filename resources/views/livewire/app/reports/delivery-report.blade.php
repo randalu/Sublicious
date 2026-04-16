@@ -1,4 +1,6 @@
 <div>
+    @include('livewire.app.reports._tabs')
+
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Delivery Report</h1>
         <div class="flex items-center gap-3 flex-wrap">
