@@ -93,6 +93,10 @@ Route::middleware(['auth', 'verified', 'business'])->prefix('app')->name('app.')
     Route::get('/employees/shifts', \App\Livewire\App\Employees\ShiftManager::class)->name('employees.shifts');
     Route::get('/employees/payroll', \App\Livewire\App\Employees\PayrollSummary::class)->name('employees.payroll');
 
+    // Inventory
+    Route::get('/inventory', \App\Livewire\App\Inventory\InventoryList::class)->name('inventory');
+    Route::get('/inventory/{inventoryItem}/history', \App\Livewire\App\Inventory\InventoryHistory::class)->name('inventory.history');
+
     // Expenses
     Route::get('/expenses', \App\Livewire\App\Expenses\ExpenseList::class)->name('expenses');
 
@@ -101,6 +105,9 @@ Route::middleware(['auth', 'verified', 'business'])->prefix('app')->name('app.')
     Route::get('/reports/orders', \App\Livewire\App\Reports\OrderReport::class)->name('reports.orders');
     Route::get('/reports/delivery', \App\Livewire\App\Reports\DeliveryReport::class)->name('reports.delivery');
     Route::get('/reports/employees', \App\Livewire\App\Reports\EmployeeReport::class)->name('reports.employees');
+
+    // Notifications
+    Route::get('/notifications', \App\Livewire\App\NotificationList::class)->name('notifications');
 
     // Settings
     Route::get('/settings/business', \App\Livewire\App\Settings\BusinessInfo::class)->name('settings.business');
