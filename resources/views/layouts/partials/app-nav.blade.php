@@ -9,6 +9,7 @@
         ['route' => 'app.billing', 'label' => 'Billing', 'icon' => 'document-text', 'role' => ['admin','manager','cashier']],
         ['route' => 'app.customers', 'label' => 'Customers', 'icon' => 'users', 'role' => ['admin','manager']],
         ['route' => 'app.employees', 'label' => 'Employees', 'icon' => 'identification', 'feature' => 'hr_module'],
+        ['route' => 'app.inventory', 'label' => 'Inventory', 'icon' => 'archive-box', 'role' => ['admin','manager']],
         ['route' => 'app.expenses', 'label' => 'Expenses', 'icon' => 'banknotes', 'feature' => 'hr_module'],
         ['route' => 'app.reports.financial', 'label' => 'Reports', 'icon' => 'chart-bar', 'role' => ['admin','manager']],
         ['route' => 'app.settings.business', 'label' => 'Settings', 'icon' => 'cog-6-tooth', 'role' => ['admin']],
