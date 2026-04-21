@@ -5,6 +5,7 @@
         ['route' => 'app.tables', 'label' => 'Tables', 'icon' => 'squares-2x2', 'role' => ['admin','manager','cashier']],
         ['route' => 'app.orders.live', 'label' => 'Kitchen Display', 'icon' => 'fire'],
         ['route' => 'app.menu', 'label' => 'Menu', 'icon' => 'book-open', 'role' => ['admin','manager']],
+        ['route' => 'app.inventory', 'label' => 'Inventory', 'icon' => 'cube', 'role' => ['admin','manager']],
         ['route' => 'app.delivery', 'label' => 'Delivery', 'icon' => 'truck', 'feature' => 'delivery'],
         ['route' => 'app.billing', 'label' => 'Billing', 'icon' => 'document-text', 'role' => ['admin','manager','cashier']],
         ['route' => 'app.customers', 'label' => 'Customers', 'icon' => 'users', 'role' => ['admin','manager']],

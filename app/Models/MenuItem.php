@@ -47,4 +47,10 @@ class MenuItem extends Model
             ->withPivot('sort_order')
             ->orderByPivot('sort_order');
     }
+
+    public function inventoryItems(): BelongsToMany
+    {
+        return $this->belongsToMany(InventoryItem::class, 'menu_item_inventory')
+            ->withPivot('quantity_used');
+    }
 }

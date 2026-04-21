@@ -93,6 +93,9 @@ Route::middleware(['auth', 'verified', 'business'])->prefix('app')->name('app.')
     Route::get('/employees/shifts', \App\Livewire\App\Employees\ShiftManager::class)->name('employees.shifts');
     Route::get('/employees/payroll', \App\Livewire\App\Employees\PayrollSummary::class)->name('employees.payroll');
 
+    // Inventory
+    Route::get('/inventory', \App\Livewire\App\Inventory\InventoryList::class)->name('inventory');
+
     // Expenses
     Route::get('/expenses', \App\Livewire\App\Expenses\ExpenseList::class)->name('expenses');
 
