@@ -33,6 +33,9 @@ class OrderBoard extends Component
         $next  = $order->nextStatus();
         if ($next) {
             $order->update(['status' => $next]);
+            if ($next === 'preparing') {
+                $order->deductInventory();
+            }
         }
     }
 

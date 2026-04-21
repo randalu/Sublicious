@@ -4,6 +4,7 @@ namespace App\Livewire\App;
 
 use App\Models\Delivery;
 use App\Models\Expense;
+use App\Models\InventoryItem;
 use App\Models\Order;
 use Livewire\Component;
 
@@ -38,7 +39,12 @@ class Dashboard extends Component
             ->take(5)
             ->get();
 
-        return view('livewire.app.dashboard', compact('stats', 'recentOrders', 'pendingOrders'))
+        $lowStockItems = InventoryItem::whereColumn('current_stock', '<=', 'low_stock_threshold')
+            ->orderBy('current_stock')
+            ->take(5)
+            ->get();
+
+        return view('livewire.app.dashboard', compact('stats', 'recentOrders', 'pendingOrders', 'lowStockItems'))
             ->layout('layouts.app', ['heading' => 'Dashboard']);
     }
 }

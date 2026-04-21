@@ -117,4 +117,39 @@
             </div>
         </div>
     </div>
+
+    {{-- Low Stock Alerts --}}
+    @if($lowStockItems->isNotEmpty())
+        <div class="mt-6 bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100">
+                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                    </span>
+                    <h3 class="text-sm font-semibold text-gray-900">Low Stock Alerts</h3>
+                </div>
+                <a href="{{ route('app.inventory') }}" class="text-xs text-primary-600 hover:text-primary-700">View inventory →</a>
+            </div>
+            <div class="divide-y divide-gray-50">
+                @foreach($lowStockItems as $item)
+                    <div class="flex items-center justify-between px-5 py-3">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">{{ $item->name }}</p>
+                            <p class="text-xs text-gray-500">Threshold: {{ number_format($item->low_stock_threshold, $item->unit === 'pcs' ? 0 : 2) }} {{ $item->unit }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium {{ $item->current_stock <= 0 ? 'text-red-600' : 'text-amber-600' }}">
+                                {{ number_format($item->current_stock, $item->unit === 'pcs' ? 0 : 2) }} {{ $item->unit }}
+                            </span>
+                            @if($item->current_stock <= 0)
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Out</span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Low</span>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 </div>

@@ -104,6 +104,7 @@ Route::middleware(['auth', 'verified', 'business'])->prefix('app')->name('app.')
     Route::get('/reports/orders', \App\Livewire\App\Reports\OrderReport::class)->name('reports.orders');
     Route::get('/reports/delivery', \App\Livewire\App\Reports\DeliveryReport::class)->name('reports.delivery');
     Route::get('/reports/employees', \App\Livewire\App\Reports\EmployeeReport::class)->name('reports.employees');
+    Route::get('/reports/inventory', \App\Livewire\App\Reports\InventoryReport::class)->name('reports.inventory');
 
     // Settings
     Route::get('/settings/business', \App\Livewire\App\Settings\BusinessInfo::class)->name('settings.business');

@@ -32,6 +32,9 @@ class OrderDetail extends Component
         $next = $this->order->nextStatus();
         if ($next) {
             $this->order->update(['status' => $next]);
+            if ($next === 'preparing') {
+                $this->order->deductInventory();
+            }
             $this->order->refresh();
             session()->flash('success', 'Status updated to ' . ucfirst($next) . '.');
         }

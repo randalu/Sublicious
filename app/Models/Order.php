@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 class Order extends Model
 {
@@ -134,5 +135,32 @@ class Order extends Model
             'delivered' => 'completed',
         ];
         return $flow[$this->status] ?? null;
+    }
+
+    public function deductInventory(): void
+    {
+        DB::transaction(function () {
+            foreach ($this->items()->with('menuItem.inventoryItems')->get() as $orderItem) {
+                if (! $orderItem->menuItem?->track_inventory) {
+                    continue;
+                }
+                foreach ($orderItem->menuItem->inventoryItems as $inv) {
+                    $qty = $inv->pivot->quantity_used * $orderItem->quantity;
+                    $before = (float) $inv->current_stock;
+                    $after = max(0, $before - $qty);
+                    $inv->update(['current_stock' => $after]);
+                    InventoryTransaction::create([
+                        'business_id'       => $this->business_id,
+                        'inventory_item_id' => $inv->id,
+                        'type'              => 'deduction',
+                        'quantity'          => $qty,
+                        'quantity_before'   => $before,
+                        'quantity_after'    => $after,
+                        'notes'             => "Order #{$this->order_number}",
+                        'user_id'           => auth()->id(),
+                    ]);
+                }
+            }
+        });
     }
 }
