@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InventoryItem extends Model
@@ -29,6 +30,12 @@ class InventoryItem extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(InventoryTransaction::class);
+    }
+
+    public function menuItems(): BelongsToMany
+    {
+        return $this->belongsToMany(MenuItem::class, 'menu_item_inventory')
+            ->withPivot('quantity_used');
     }
 
     public function isLowStock(): bool

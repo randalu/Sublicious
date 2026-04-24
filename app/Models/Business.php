@@ -97,6 +97,11 @@ class Business extends Model
         return $this->hasMany(AuditLog::class);
     }
 
+    public function inventoryItems(): HasMany
+    {
+        return $this->hasMany(InventoryItem::class);
+    }
+
     public function getSetting(string $key, mixed $default = null): mixed
     {
         $setting = $this->settings()->where('key', $key)->first();
